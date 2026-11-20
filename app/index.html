@@ -3,87 +3,77 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leonida Trophy Guide — GTA VI Trophy Tracker</title>
-<link rel="stylesheet" href="leonida.css">
+<title>Vice Palms — GTA VI Trophy Guide & Platinum Tracker</title>
+<link rel="stylesheet" href="styles/palms-theme.css">
+<script type="module" src="js/platinum-app.js"></script>
 </head>
 <body>
-<header class="masthead">
-  <div class="masthead-inner">
+<div id="app">
+
+  <header class="app-header" id="app-header">
     <div class="brand">
-      <h1>Leonida Trophy Guide</h1>
-      <p class="tagline">Grand Theft Auto VI · PlayStation 5 · all 55 trophies — tracker, guides and a platinum roadmap</p>
+      <h1>VICE <span class="brand-accent">PALMS</span></h1>
+      <p>GTA VI Trophy Guide &amp; Platinum Tracker — all 55 PS5 trophies, every guide cited</p>
     </div>
-    <div class="progress-box" aria-live="polite">
-      <div class="progress-count"><span id="earned-count">0</span> of 55 earned</div>
-      <div class="progress-bar"><div id="progress-fill"></div></div>
-      <div class="progress-pct" id="progress-pct">0%</div>
-    </div>
-  </div>
-</header>
-
-<nav class="view-tabs" aria-label="Views">
-  <button id="tab-tracker" class="tab active" type="button">Tracker &amp; guides</button>
-  <button id="tab-roadmap" class="tab" type="button">Platinum roadmap</button>
-</nav>
-
-<main>
-  <section id="tracker-view">
-    <div class="toolbar">
-      <input id="search" type="search" placeholder="Search trophies by name or description…" aria-label="Search trophies">
-      <div class="chip-row" id="kind-filters" role="group" aria-label="Filter by kind">
-        <button type="button" class="chip active" data-kind="all">All kinds</button>
-        <button type="button" class="chip" data-kind="story">Story</button>
-        <button type="button" class="chip" data-kind="missable">Missable</button>
-        <button type="button" class="chip" data-kind="collectibles">Collectibles</button>
-        <button type="button" class="chip" data-kind="activities">Activities</button>
-        <button type="button" class="chip" data-kind="online">Online</button>
+    <div class="progress-block">
+      <div class="progress-line">
+        <span class="progress-count" id="progress-count">0 of 55</span>
+        <span class="progress-label" id="progress-label">trophies earned</span>
       </div>
-      <div class="toolbar-row">
-        <label>Grade
-          <select id="grade-filter">
-            <option value="all">All grades</option>
-            <option value="platinum">Platinum</option>
-            <option value="gold">Gold</option>
-            <option value="silver">Silver</option>
-            <option value="bronze">Bronze</option>
-          </select>
-        </label>
-        <label>Progress
-          <select id="state-filter">
-            <option value="all">Earned &amp; unearned</option>
-            <option value="earned">Earned only</option>
-            <option value="unearned">Unearned only</option>
-          </select>
-        </label>
-        <label class="spoiler-toggle">
-          <input type="checkbox" id="spoiler-toggle">
-          Spoiler shield — mask story &amp; hidden trophies until earned
-        </label>
-        <span class="toolbar-spacer"></span>
-        <button id="export-btn" type="button">Export progress</button>
-        <label class="import-label" for="import-file">Import progress</label>
-        <input id="import-file" type="file" accept="application/json,.json" hidden>
-      </div>
-      <p class="result-line" id="result-line" aria-live="polite"></p>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="grade-counts" id="grade-counts"></div>
     </div>
-
-    <div class="layout">
-      <ul id="trophy-list" class="trophy-list"></ul>
-      <aside id="guide-panel" class="guide-panel" aria-live="polite"></aside>
+    <div class="header-actions">
+      <button class="btn" id="btn-export" type="button">Export progress</button>
+      <button class="btn" id="btn-import" type="button">Import progress</button>
+      <input type="file" id="import-file" accept="application/json" hidden>
     </div>
-  </section>
+  </header>
 
-  <section id="roadmap-view" hidden>
-    <div id="roadmap-content"></div>
-  </section>
-</main>
+  <nav class="toolbar" id="toolbar">
+    <input class="search" id="search-input" type="search" placeholder="Search trophies…">
+    <span id="kind-chips">
+      <button class="chip active" type="button" data-kind="all">All</button>
+      <button class="chip" type="button" data-kind="story">Story</button>
+      <button class="chip chip-danger" type="button" data-kind="missable">Missable</button>
+      <button class="chip" type="button" data-kind="collectibles">Collectibles</button>
+      <button class="chip" type="button" data-kind="activities">Activities</button>
+      <button class="chip" type="button" data-kind="online">Online</button>
+    </span>
+    <select id="grade-filter" title="Filter by grade">
+      <option value="all">All grades</option>
+      <option value="platinum">Platinum</option>
+      <option value="gold">Gold</option>
+      <option value="silver">Silver</option>
+      <option value="bronze">Bronze</option>
+    </select>
+    <select id="state-filter" title="Filter by earned state">
+      <option value="all">Earned + unearned</option>
+      <option value="earned">Earned only</option>
+      <option value="unearned">Unearned only</option>
+    </select>
+    <label class="toggle"><input type="checkbox" id="spoiler-toggle" checked> Spoiler shield (hide hidden trophies)</label>
+    <span class="view-tabs">
+      <button class="tab active" type="button" data-view="tracker">Tracker</button>
+      <button class="tab" type="button" data-view="guides">Guides</button>
+      <button class="tab" type="button" data-view="roadmap">Roadmap</button>
+    </span>
+  </nav>
 
-<footer class="colophon">
-  <p>An offline fan-made tracker. Trophy names, descriptions and grades are the official PlayStation list;
-  every guide is written for this app in its own words and cites the published guides it draws on.
-  Progress is stored only in your browser (localStorage) — export it to keep a backup.</p>
-</footer>
+  <main class="layout" id="view-tracker">
+    <section class="trophy-list" id="trophy-list"></section>
+    <aside class="detail-panel" id="detail-panel"></aside>
+  </main>
 
-<script type="module" src="js/tracker.js"></script>
+  <main class="guides-view" id="view-guides" hidden></main>
+
+  <main id="view-roadmap" hidden></main>
+
+  <footer class="app-footer">
+    Vice Palms is an unofficial fan tracker. Trophy names and descriptions are the official PlayStation 5 list;
+    every guide is written for this tracker and cites its sources beside it. Progress is saved only in this browser.
+  </footer>
+
+</div>
 </body>
 </html>

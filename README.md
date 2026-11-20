@@ -1,64 +1,51 @@
-# Leonida Trophy Guide — a GTA VI trophy tracker & guide
-
-An offline tracker and guide for all **55 PlayStation 5 trophies** of
-Grand Theft Auto VI: a checklist that remembers your progress, a guide
-for every trophy written for this app and citing its sources, and a
-seven-stage roadmap to the platinum.
+# Vice Palms — GTA VI Trophy Guide & Platinum Tracker
 
 [![make.fun bounty](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
-[![make.fun rank](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
-[![make.fun reward](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![rank](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![reward](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
 
-## What the app does
+An offline guide and tracker for all **55 PlayStation 5 trophies** of Grand Theft Auto VI
+(1 platinum, 2 gold, 6 silver, 46 bronze — 28 of them hidden, exactly 1 missable).
 
-- **Checklist for all 55 trophies** with the official name, description
-  and grade of each, exactly as PlayStation publishes them
-  (1 platinum, 2 gold, 6 silver, 46 bronze; 28 hidden).
-- **Progress that sticks**: tick trophies off and the state is saved in
-  the browser's localStorage; export it to a JSON file and import it
-  back on another machine.
-- **Filters and search**: by kind (story, missable, collectibles,
-  activities, online), by grade, by earned state, plus free-text search.
-- **Spoiler shield**: masks the names and descriptions of story and
-  hidden trophies until you earn them.
-- **A guide per trophy**, in this app's own words — what to do, where
-  and how, and when it can be missed — with the published guides it
-  draws on named beside it. Exactly one trophy is missable,
-  *Positive Mental Attitude*, and it is flagged everywhere it appears.
-- **Platinum roadmap**: seven stages from Chapter 1 to the platinum,
-  built from the official descriptions and the published roadmaps.
+## What it does
 
-The app is fully static and offline: it loads only its own files.
+- **Tracker** — a checklist of all 55 trophies with their official names, descriptions and
+  grades. Earned state is saved in the browser (localStorage), with a progress dashboard
+  (total, percent and per-grade counts) and one-click **export / import** of your progress
+  as a JSON file.
+- **Filters** — by kind (story, missable, collectibles, activities, online), by grade and by
+  earned state, plus full-text search.
+- **Spoiler shield** — while it is on, hidden trophies keep their names and descriptions
+  masked until you earn them, so story beats are never given away.
+- **Guides** — every trophy carries a guide written for this tracker: what to do, where,
+  when, and the counts PlayStation tracks (250 stunts, 42 range golds, 18 meditation
+  spots…). Each guide **cites its sources** beside it.
+- **Roadmap** — an 8-stage platinum roadmap (about 200 hours, one playthrough, difficulty
+  4/10) that flags the run's only missable trophy, **Positive Mental Attitude**, in
+  Chapter 1 where it belongs.
 
-## Layout
+## Run it
 
-- `main.ts` — the entrypoint. Copies `app/` and `screenshots/` into the
-  output directory and writes `dossier.json` there with the kit's
-  `buildDossier` (Node 22, standard library only).
-- `app/index.html` — the page; `app/leonida.css` — its night theme.
-- `app/js/tracker.js` — boots the app and wires the controls;
-  `app/js/catalog.js` — data loading and filtering;
-  `app/js/progress.js` — localStorage, export and import;
-  `app/js/panels.js` — the guide panel and the roadmap view.
-- `app/data/trophies.json` — the 55 trophies with guides, kinds,
-  missable flags and sources; `app/data/roadmap.json` — the roadmap.
-- `screenshots/` — four screenshots of the app in a browser.
+The app is plain static files under `app/` — no build step, no network. Serve the folder
+with any static server, e.g. the kit's helper:
 
-## Try it
-
-```sh
-node serve.ts          # serves app/ at http://localhost:8080
-mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts   # build the hand-in
 ```
+node serve.ts            # then open http://localhost:8080
+```
+
+## Hand it in
+
+```
+mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
+```
+
+`main.ts` (Node 22, standard library only) copies `app/` and `screenshots/` to the output
+directory and writes `dossier.json` with the vendored `buildDossier` from
+`vendor/makefun-frontend.ts`.
 
 ## Sources
 
-Guides are original to this app and cite, per trophy, the published
-guides they draw on: PowerPyx's GTA 6 Trophy Guide & Roadmap,
-KeenGamer's Platinum Roadmap, Push Square's Trophy Guide and Roadmap,
-and the EGamers.io trophy list. Trophy names, descriptions and grades
-are the official PlayStation list.
-
-## License
-
-MIT — see `LICENSE`.
+The official trophy list is PlayStation's, as listed by Exophase and PSNProfiles. The
+guides draw on, and cite beside each trophy, the published guides at PowerPyx, Push Square
+and KeenGamer. Guide text here is written for this tracker; no text is copied from them,
+and no Rockstar Games logo or artwork is used anywhere.
