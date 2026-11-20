@@ -1,45 +1,49 @@
 # Leonida Nights — GTA VI Trophy Guide & Tracker
 
 [![make.fun bounty](https://make.fun/badge/gta6-trophy-guide-01.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
-[![rank](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
-[![reward](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![Leonida Nights rank](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/rank.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
+[![Leonida Nights reward](https://make.fun/badge/gta6-trophy-guide-01/Robekk/makefun-gta6-trophy-guide-01/reward.svg)](https://make.fun/bounty/gta6-trophy-guide-01)
 
-An offline guide and tracker for the 55 PlayStation 5 trophies of **Grand Theft Auto VI** — every trophy with its official name, description and grade, a guide in our own words that names its sources, a seven-stage roadmap to the platinum, and a checklist whose progress lives in your browser.
+An offline guide and tracker for all **55 PlayStation 5 trophies of Grand Theft Auto VI** — 1 platinum, 2 gold, 6 silver, 46 bronze, 28 of them hidden on PlayStation until earned. Every trophy carries its official name, description and grade, plus a guide written for this page that **cites its sources** beside it, so you can see where every fact comes from.
 
-## What is inside
+## What it does
 
-- **The full list, checked.** All 55 official trophies (1 platinum, 2 gold, 6 silver, 46 bronze; 28 hidden on PlayStation) with names, descriptions and grades exactly as published, each extended with `guide`, `kind`, `missable` and `sources` in `app/data/trophies.json`.
-- **One missable trophy, flagged everywhere.** *Positive Mental Attitude* can be lost: Lucia's balcony meditation at Jason's house exists only during Chapter 1, after the mission *Down to Earth*. The tracker badges it, the guide panel warns about it, the header reports whether it is safe, and Stage 1 of the roadmap is built around it.
-- **A tracker, not just a list.** Tick trophies off as they pop; progress (count, percent, per-grade splits) is saved in `localStorage` and can be exported to a JSON file and imported back on another browser.
-- **Filters and search.** By kind (story, missable, collectibles, activities, online — the official list has no online trophies, and the tracker says so), by grade, by earned state, and by free text.
-- **A spoiler shield.** Turn it on and unearned story and PSN-hidden trophies show as "Hidden trophy", names and guides masked, until you earn them.
-- **A roadmap.** `app/data/roadmap.json` lays out seven stages — Chapter 1 and the missable, the story, the 100% Completion checklist, collectibles, the stranger questlines, crime-and-cash cleanup, and the platinum — derived from the official descriptions and the published guides.
-- **Cited guidance.** Every guide names the published guides it rests on, beside the guide itself: PowerPyx's trophy guide and roadmap, KeenGamer's platinum roadmap, Push Square's trophy guide, GTABase's trophy list, the Radio Times list, and Exophase's list (via PlanetGTA6). Specifics without a citation earn no credit, so there are none.
+- **Checklist tracker** — tick trophies off as you earn them; progress is saved in your browser (localStorage) and shown as a count, a percentage and a per-grade breakdown.
+- **Export / import** — download your progress as a JSON file and import it back on any machine.
+- **Filters** — by kind (story, collectibles, activities, missable), by grade, by earned state, plus full-text search across names, descriptions and guides.
+- **Spoiler shield** — a setting that masks the names, descriptions and guides of story trophies until you have earned them.
+- **Guide panel** — each trophy's guide in full: what to do, where and how, and when it can be missed. The one missable trophy, **Positive Mental Attitude**, carries a loud warning: its first meditation spot, on the balcony of Jason's house, exists only in Chapter 1.
+- **Roadmap to the platinum** — six stages from Chapter 1 to the final cleanup, built from the official descriptions: story first (with the missable flagged in stage 1), then the character questlines, the 100% checklist, the collections sweep, and the one-off moments.
 
-## Run it
+The whole list is offline and single-player — there are no online trophies. Published roadmaps put the platinum at roughly 200 hours and rate only Positive Mental Attitude as missable.
 
-The app is plain static files under `app/` — no build step. Serve the folder with any static server and open it in a browser:
+## Run the guide
+
+Serve the `app/` folder with any static file server and open `index.html` in a desktop browser. With Node installed, the kit's helper does it:
 
 ```
-node serve.ts        # the kit's helper, serves app/ on http://localhost:8080
+node serve.ts
 ```
 
-It works fully offline: it loads only its own files.
+then visit http://localhost:8080. The app loads nothing over the network: every script, style and data file lives under `app/`.
 
-## Hand it in
+## Hand in the entry
 
-`main.ts` (Node 22, standard library only) copies `app/` and `screenshots/` to the output directory (`MAKEFUN_OUTPUT_DIR`, or `/output`) and writes `dossier.json` with the vendored `buildDossier` from `vendor/makefun-frontend.ts`:
+`main.ts` (Node 22, standard library only) copies `app/` and `screenshots/` into the output directory and writes `dossier.json` there with the vendored make.fun library:
 
 ```
 mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 ```
 
-The run is deterministic: two runs write byte-identical output, and the program prints a one-line summary of what was handed in and refuses to write a dossier over the 1.5 MiB gate limit.
+It prints a summary of what was delivered and fails loudly if the dossier would exceed the 1.5 MiB cap.
 
-## Screenshots
+## Data & sources
 
-`screenshots/` holds four renders of the app itself, taken by its maker in Chromium at 1280×800: the tracker at 18 of 55 earned with the missable guide open, the missable trophy's guide panel with its warning and sources, the roadmap, and the story filter under the spoiler shield.
+- `app/data/trophies.json` — the 55 trophies: official name, description and grade, each extended with a guide in our own words, its kind, a missable flag and its sources.
+- `app/data/roadmap.json` — the six-stage platinum roadmap.
+
+Guides were written from the published coverage of the trophy list and roadmap — PowerPyx, GTABase, KeenGamer, Push Square and Radio Times are cited per trophy inside the data and shown in the guide panel. Trophy names and descriptions are the official ones, as published for PlayStation.
 
 ## License
 
-MIT — see `LICENSE`.
+MIT — see `LICENSE`. A fan-made project; not affiliated with Rockstar Games. No Rockstar logos or artwork are used.

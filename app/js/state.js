@@ -1,68 +1,92 @@
-// state.js — the tracker's memory: which trophies are earned, and the spoiler
-// setting. Everything lives under one localStorage key so export/import is a
-// single small JSON document.
+// Progress store for Leonida Nights: earned trophies and view settings, kept in localStorage.
 
-export const STORAGE_KEY = "leonida-nights-tracker-v1";
+const STORAGE_KEY = 'leonida-nights-tracker-v1';
 
-const defaultState = () => ({ earned: [], spoilerShield: false });
+const DEFAULT_STATE = {
+  earned: [],
+  spoilerShield: false,
+  kind: 'all',
+  grade: 'all',
+  earnedFilter: 'all',
+  query: '',
+  selectedId: null,
+  view: 'tracker',
+};
 
-export function loadState() {
+function readStoredState() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultState();
+    if (!raw) return { ...DEFAULT_STATE };
     const parsed = JSON.parse(raw);
-    const earned = Array.isArray(parsed.earned)
-      ? parsed.earned.filter((n) => Number.isInteger(n))
-      : [];
-    return { earned, spoilerShield: parsed.spoilerShield === true };
+    if (!parsed || typeof parsed !== 'object') return { ...DEFAULT_STATE };
+    return { ...DEFAULT_STATE, ...parsed, earned: Array.isArray(parsed.earned) ? parsed.earned : [] };
   } catch {
-    return defaultState();
+    return { ...DEFAULT_STATE };
   }
 }
 
-export function saveState(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch {
-    // Storage can be unavailable (private mode, quota). The tracker still
-    // works for the session; progress simply will not persist.
+export function createProgressStore() {
+  let state = readStoredState();
+  const listeners = new Set();
+
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      // Storage can be unavailable (private mode, quota); the tracker keeps working in memory.
+    }
   }
-}
 
-export function toggleEarned(state, id) {
-  const at = state.earned.indexOf(id);
-  if (at === -1) state.earned.push(id);
-  else state.earned.splice(at, 1);
-  return state;
-}
+  function emit() {
+    for (const listener of listeners) listener(state);
+  }
 
-export function isEarned(state, id) {
-  return state.earned.includes(id);
-}
-
-// A portable snapshot of progress, small enough to paste into a message.
-export function exportText(state) {
-  return JSON.stringify(
-    {
-      app: "leonida-nights-tracker",
-      version: 1,
-      earned: [...state.earned].sort((a, b) => a - b),
-      spoilerShield: state.spoilerShield,
+  return {
+    getState() {
+      return state;
     },
-    null,
-    2,
-  );
-}
-
-// Accepts the object exportText produces (or any object with an "earned"
-// array of trophy ids) and returns a fresh state, or null when unusable.
-export function importText(text) {
-  try {
-    const parsed = JSON.parse(text);
-    if (!parsed || !Array.isArray(parsed.earned)) return null;
-    const earned = [...new Set(parsed.earned.filter((n) => Number.isInteger(n)))];
-    return { earned, spoilerShield: parsed.spoilerShield === true };
-  } catch {
-    return null;
-  }
+    isEarned(id) {
+      return state.earned.includes(id);
+    },
+    toggleEarned(id) {
+      const next = new Set(state.earned);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      state = { ...state, earned: [...next].sort((a, b) => a - b) };
+      persist();
+      emit();
+    },
+    setEarned(ids) {
+      state = { ...state, earned: [...new Set(ids)].sort((a, b) => a - b) };
+      persist();
+      emit();
+    },
+    update(patch) {
+      state = { ...state, ...patch };
+      persist();
+      emit();
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    exportJson() {
+      return JSON.stringify(
+        {
+          app: 'leonida-nights-tracker',
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          earned: [...state.earned].sort((a, b) => a - b),
+        },
+        null,
+        2,
+      );
+    },
+    importJson(text) {
+      const parsed = JSON.parse(text);
+      const ids = Array.isArray(parsed) ? parsed : parsed.earned;
+      if (!Array.isArray(ids)) throw new Error('That file does not hold an earned list.');
+      return ids.filter((id) => Number.isInteger(id));
+    },
+  };
 }

@@ -1,78 +1,123 @@
-// list-view.js — renders the checklist: one row per trophy with its official
-// name, description and grade, an earned checkbox, and the badges (hidden,
-// missable, kind) that matter at a glance. Masked trophies (spoiler shield)
-// show as "Hidden trophy" until earned.
+// The checklist side of Leonida Nights: filter chips, the trophy rows and the progress header.
 
-import { GRADE_LABEL, KIND_LABEL, isMasked } from "./data.js";
+import { KIND_LABELS, KIND_ORDER, countByGrade, isMasked } from './data.js';
 
-function badge(text, cls) {
-  const span = document.createElement("span");
-  span.className = `badge ${cls}`;
-  span.textContent = text;
-  return span;
-}
-
-export function renderTrophyRow(trophy, { earned, masked, selected }) {
-  const li = document.createElement("li");
-  li.className = "trophy-row";
-  li.dataset.id = String(trophy.id);
-  if (earned) li.classList.add("is-earned");
-  if (selected) li.classList.add("is-selected");
-  if (masked) li.classList.add("is-masked");
-
-  const check = document.createElement("input");
-  check.type = "checkbox";
-  check.className = "earned-check";
-  check.checked = earned;
-  check.dataset.id = String(trophy.id);
-  check.setAttribute(
-    "aria-label",
-    `Mark ${masked ? "hidden trophy" : trophy.name} as earned`,
-  );
-
-  const body = document.createElement("div");
-  body.className = "row-body";
-
-  const titleLine = document.createElement("p");
-  titleLine.className = "row-title";
-  const name = document.createElement("span");
-  name.className = "row-name";
-  name.textContent = masked ? "Hidden trophy" : trophy.name;
-  titleLine.append(name);
-  const grade = document.createElement("span");
-  grade.className = `grade-pill grade-${trophy.grade}`;
-  grade.textContent = GRADE_LABEL[trophy.grade];
-  titleLine.append(grade);
-  body.append(titleLine);
-
-  const desc = document.createElement("p");
-  desc.className = "row-desc";
-  desc.textContent = masked
-    ? "Name and description stay hidden until you earn it — spoiler shield is on."
-    : trophy.description;
-  body.append(desc);
-
-  const badges = document.createElement("p");
-  badges.className = "row-badges";
-  if (trophy.missable) badges.append(badge("MISSABLE", "badge-missable"));
-  if (trophy.hidden) badges.append(badge("Hidden on PSN", "badge-hidden"));
-  badges.append(badge(KIND_LABEL[trophy.kind] ?? trophy.kind, "badge-kind"));
-  if (typeof trophy.count === "number") {
-    badges.append(badge(`Target: ${trophy.count.toLocaleString("en-US")}`, "badge-count"));
+export function trophyMatchesFilters(trophy, state, store) {
+  if (state.kind !== 'all' && trophy.kind !== state.kind) return false;
+  if (state.grade !== 'all' && trophy.grade !== state.grade) return false;
+  if (state.earnedFilter === 'earned' && !store.isEarned(trophy.id)) return false;
+  if (state.earnedFilter === 'unearned' && store.isEarned(trophy.id)) return false;
+  const query = state.query.trim().toLowerCase();
+  if (query) {
+    const haystack = `${trophy.name} ${trophy.description} ${trophy.guide} ${trophy.kind}`.toLowerCase();
+    if (!haystack.includes(query)) return false;
   }
-  body.append(badges);
-
-  li.append(check, body);
-  return li;
+  return true;
 }
 
-export function renderList(listEl, trophies, view) {
-  const rows = trophies.map((trophy) =>
-    renderTrophyRow(trophy, {
-      earned: view.earnedSet.has(trophy.id),
-      masked: isMasked(trophy, view.state),
-      selected: view.selectedId === trophy.id,
-    }),
+export function renderKindChips(container, trophies, state, onPick) {
+  container.replaceChildren();
+  const counts = new Map();
+  for (const trophy of trophies) counts.set(trophy.kind, (counts.get(trophy.kind) ?? 0) + 1);
+  const options = [{ value: 'all', label: 'All kinds', count: trophies.length }];
+  for (const kind of KIND_ORDER) {
+    if (counts.has(kind)) options.push({ value: kind, label: KIND_LABELS[kind], count: counts.get(kind) });
+  }
+  const missableCount = trophies.filter((t) => t.missable).length;
+  if (missableCount > 0) options.push({ value: 'missable', label: 'Missable', count: missableCount });
+  for (const option of options) {
+    const chip = document.createElement('button');
+    chip.type = 'button';
+    chip.className = 'chip' + (state.kind === option.value ? ' is-active' : '');
+    chip.textContent = option.label;
+    const count = document.createElement('span');
+    count.className = 'chip-count';
+    count.textContent = String(option.count);
+    chip.append(count);
+    chip.addEventListener('click', () => onPick(option.value));
+    container.append(chip);
+  }
+}
+
+function buildRow(trophy, state, store, handlers) {
+  const masked = isMasked(trophy, state, store);
+  const earned = store.isEarned(trophy.id);
+  const row = document.createElement('li');
+  row.className =
+    'trophy-row' +
+    (earned ? ' is-earned' : '') +
+    (masked ? ' is-masked' : '') +
+    (state.selectedId === trophy.id ? ' is-selected' : '');
+
+  const checkbox = document.createElement('input');
+  checkbox.type = 'checkbox';
+  checkbox.className = 'trophy-check';
+  checkbox.checked = earned;
+  checkbox.setAttribute('aria-label', `Mark ${masked ? 'hidden trophy' : trophy.name} as earned`);
+  checkbox.addEventListener('click', (event) => event.stopPropagation());
+  checkbox.addEventListener('change', () => handlers.onToggleEarned(trophy.id));
+
+  const dot = document.createElement('span');
+  dot.className = `grade-dot grade-${trophy.grade}`;
+  dot.title = trophy.grade;
+
+  const main = document.createElement('div');
+  main.className = 'trophy-main';
+  const name = document.createElement('div');
+  name.className = 'trophy-name';
+  const nameText = document.createElement('span');
+  nameText.textContent = masked ? 'Hidden trophy' : trophy.name;
+  name.append(nameText);
+  const kindTag = document.createElement('span');
+  kindTag.className = 'kind-tag';
+  kindTag.textContent = KIND_LABELS[trophy.kind] ?? trophy.kind;
+  name.append(kindTag);
+  if (trophy.missable) {
+    const tag = document.createElement('span');
+    tag.className = 'missable-tag';
+    tag.textContent = 'Missable';
+    name.append(tag);
+  }
+  const desc = document.createElement('div');
+  desc.className = 'trophy-desc';
+  desc.textContent = masked ? 'Earn this story trophy to reveal what it is.' : trophy.description;
+  main.append(name, desc);
+
+  const grade = document.createElement('span');
+  grade.className = 'grade-label';
+  grade.textContent = trophy.grade;
+
+  row.append(checkbox, dot, main, grade);
+  row.addEventListener('click', () => handlers.onSelect(trophy.id));
+  return row;
+}
+
+export function renderTrophyList(elements, trophies, state, store, handlers) {
+  const visible = trophies.filter((trophy) =>
+    state.kind === 'missable'
+      ? trophy.missable && trophyMatchesFilters(trophy, { ...state, kind: 'all' }, store)
+      : trophyMatchesFilters(trophy, state, store),
   );
-  listEl.replaceChildren(...rows);
+  elements.list.replaceChildren();
+  for (const trophy of visible) elements.list.append(buildRow(trophy, state, store, handlers));
+  elements.emptyState.hidden = visible.length > 0;
+  elements.resultCount.textContent = `Showing ${visible.length} of ${trophies.length} trophies`;
+  return visible;
+}
+
+export function renderProgress(elements, trophies, store) {
+  const earnedCount = trophies.filter((t) => store.isEarned(t.id)).length;
+  const total = trophies.length;
+  const percent = total === 0 ? 0 : Math.round((earnedCount / total) * 100);
+  elements.summary.textContent = `${earnedCount} of ${total} earned — ${percent}%`;
+  elements.fill.style.width = `${percent}%`;
+  elements.fill.parentElement.setAttribute('aria-valuenow', String(earnedCount));
+  const totals = countByGrade(trophies);
+  const earnedByGrade = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
+  for (const trophy of trophies) {
+    if (store.isEarned(trophy.id)) earnedByGrade[trophy.grade] += 1;
+  }
+  elements.grades.textContent =
+    `Platinum ${earnedByGrade.platinum}/${totals.platinum} · Gold ${earnedByGrade.gold}/${totals.gold} · ` +
+    `Silver ${earnedByGrade.silver}/${totals.silver} · Bronze ${earnedByGrade.bronze}/${totals.bronze}`;
 }

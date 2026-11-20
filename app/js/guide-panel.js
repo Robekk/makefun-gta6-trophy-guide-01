@@ -1,8 +1,7 @@
-// guide-panel.js — the reading pane: one trophy in full. Official name,
-// description and grade, the guide in our own words, a MISSABLE warning where
-// the trophy can be lost, and the sources the guide rests on, named beside it.
+// The guide panel: one trophy in full — official name and description, the earned toggle,
+// the MISSABLE warning where flagged, the guide in this tracker's own words, and its sources.
 
-import { GRADE_LABEL, KIND_LABEL, isMasked } from "./data.js";
+import { KIND_LABELS, isMasked } from './data.js';
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -11,98 +10,73 @@ function el(tag, className, text) {
   return node;
 }
 
-export function renderGuidePanel(pane, trophy, { earned, state, stageName }) {
+export function renderGuidePanel(container, trophy, state, store, handlers) {
+  container.replaceChildren();
   if (!trophy) {
-    pane.replaceChildren(
+    container.append(
       el(
-        "p",
-        "guide-hint",
-        "Pick any trophy on the left to read its guide, its sources and its place on the road to the platinum.",
+        'p',
+        'guide-placeholder',
+        'Pick a trophy from the checklist to read its guide — what to do, where it can be missed, and the sources every fact is cited from.',
       ),
     );
     return;
   }
 
-  const masked = isMasked(trophy, state);
-  const frag = document.createDocumentFragment();
+  const masked = isMasked(trophy, state, store);
+  const earned = store.isEarned(trophy.id);
 
-  const head = el("div", "guide-head");
-  const title = el("h2", "guide-title", masked ? "Hidden trophy" : trophy.name);
-  const grade = el(
-    "span",
-    `grade-pill grade-${trophy.grade}`,
-    GRADE_LABEL[trophy.grade],
-  );
-  head.append(title, grade);
-  frag.append(head);
-
-  frag.append(
-    el(
-      "p",
-      "guide-desc",
-      masked
-        ? "This trophy's name and description are masked by the spoiler shield until you earn it."
-        : trophy.description,
-    ),
+  container.append(el('div', 'guide-grade', masked ? 'Story trophy — hidden' : `${trophy.grade} · ${KIND_LABELS[trophy.kind] ?? trophy.kind}`));
+  container.append(el('h2', 'guide-name', masked ? 'Hidden trophy' : trophy.name));
+  container.append(
+    el('p', 'guide-desc', masked ? 'The spoiler shield is hiding this story trophy until you earn it.' : trophy.description),
   );
 
-  const meta = el("p", "guide-meta");
-  const bits = [`Kind: ${KIND_LABEL[trophy.kind] ?? trophy.kind}`];
-  if (trophy.hidden) bits.push("Hidden on PlayStation until earned");
-  if (typeof trophy.count === "number") {
-    bits.push(`PlayStation tracks: ${trophy.count.toLocaleString("en-US")}`);
-  }
-  if (stageName) bits.push(`Roadmap: ${stageName}`);
-  meta.textContent = bits.join(" · ");
-  frag.append(meta);
+  const toggle = el('button', 'guide-earned-btn' + (earned ? ' is-earned' : ''), earned ? 'Earned ✓ — tap to undo' : 'Mark as earned');
+  toggle.type = 'button';
+  toggle.addEventListener('click', () => handlers.onToggleEarned(trophy.id));
+  container.append(toggle);
 
-  if (trophy.missable) {
-    frag.append(
+  if (masked) {
+    container.append(
       el(
-        "p",
-        "missable-warning",
-        "⚠ MISSABLE — this trophy can be lost for good. One of its meditation spots is Lucia's balcony meditation at Jason's house in Chapter 1, available only until Chapter 1 ends. Do that one first; the rest can wait.",
+        'p',
+        'guide-masked-note',
+        'Spoiler shield is on: this story trophy\u2019s name, description and guide stay hidden until it is earned. Turn the shield off in the toolbar if you would rather read ahead.',
       ),
     );
+    return;
   }
 
-  frag.append(el("h3", "guide-h", "Guide"));
-  frag.append(
-    el(
-      "p",
-      "guide-text",
-      masked
-        ? "Earn this trophy to reveal its guide — the spoiler shield hides story guides too, so nothing about the moment is given away early."
-        : trophy.guide,
-    ),
-  );
+  if (trophy.missable) {
+    const warning = el('div', 'missable-warning');
+    const strong = el('strong', '', '⚠ MISSABLE — ');
+    warning.append(
+      strong,
+      document.createTextNode(
+        'this trophy can be locked out permanently. The first meditation spot, on the balcony of Jason\u2019s house, exists only in Chapter 1. Read the guide before you finish the chapter.',
+      ),
+    );
+    container.append(warning);
+  }
 
-  frag.append(el("h3", "guide-h", "Sources"));
-  const list = el("ul", "source-list");
+  container.append(el('h3', 'guide-section-title', 'Guide'));
+  container.append(el('p', 'guide-body', trophy.guide));
+
+  container.append(el('h3', 'guide-section-title', 'Sources — where these facts come from'));
+  const list = el('ul', 'guide-sources');
   for (const source of trophy.sources ?? []) {
-    // Sources are stored as "Name — where to find it": bold the name so a
-    // reader (or a judge skimming the panel) sees at a glance which guides
-    // the entry rests on, with the address kept beside it.
-    const item = el("li");
-    const splitAt = source.indexOf(" — ");
-    if (splitAt > 0) {
-      const name = el("strong", "source-name", source.slice(0, splitAt));
-      item.append(name, document.createTextNode(` — ${source.slice(splitAt + 3)}`));
+    const item = el('li');
+    // Sources are stored as "Name — Title (URL)": set the name in strong ink and the
+    // address in a quieter tone so a reader can scan who says it before parsing the link.
+    const splitAt = source.lastIndexOf(' (');
+    if (splitAt > 0 && source.endsWith(')')) {
+      item.append(el('span', 'source-name', source.slice(0, splitAt)));
+      item.append(el('span', 'source-url', source.slice(splitAt + 2, -1)));
     } else {
-      item.textContent = source;
+      item.append(el('span', 'source-name', source));
     }
     list.append(item);
   }
-  frag.append(list);
-
-  const stateLine = el(
-    "p",
-    "guide-state",
-    earned
-      ? "✓ Earned — nicely done. It stays earned until you untick it in the list."
-      : "Not earned yet — tick the box in the list when it pops.",
-  );
-  frag.append(stateLine);
-
-  pane.replaceChildren(frag);
+  container.append(list);
 }

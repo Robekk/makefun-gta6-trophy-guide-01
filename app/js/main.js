@@ -1,187 +1,140 @@
-// main.js — boots the tracker: loads the guide data, wires the toolbar
-// (search, kind chips, grade and state filters, spoiler shield, export and
-// import), and keeps the checklist, the guide panel, the header progress and
-// the roadmap in step with the saved state.
+// Leonida Nights — entry point: loads the data, wires the controls, and keeps the
+// tracker, guide panel and roadmap in step with the progress store.
 
-import { loadGuideData, trophyMatches, GRADE_LABEL } from "./data.js";
-import {
-  loadState,
-  saveState,
-  toggleEarned,
-  isEarned,
-  exportText,
-  importText,
-} from "./state.js";
-import { renderList } from "./list-view.js";
-import { renderGuidePanel } from "./guide-panel.js";
-import { renderRoadmap, stageNameFor } from "./roadmap-view.js";
+import { createProgressStore } from './state.js';
+import { loadGuideData } from './data.js';
+import { renderKindChips, renderProgress, renderTrophyList } from './list-view.js';
+import { renderGuidePanel } from './guide-panel.js';
+import { renderRoadmap } from './roadmap-view.js';
 
-const $ = (id) => document.getElementById(id);
+const elements = {
+  summary: document.getElementById('progress-summary'),
+  grades: document.getElementById('progress-grades'),
+  fill: document.getElementById('progress-fill'),
+  trackerView: document.getElementById('tracker-view'),
+  roadmapView: document.getElementById('roadmap-view'),
+  trackerTab: document.getElementById('view-tracker-btn'),
+  roadmapTab: document.getElementById('view-roadmap-btn'),
+  exportBtn: document.getElementById('export-btn'),
+  importBtn: document.getElementById('import-btn'),
+  importFile: document.getElementById('import-file'),
+  search: document.getElementById('search-input'),
+  kindFilters: document.getElementById('kind-filters'),
+  gradeFilter: document.getElementById('grade-filter'),
+  earnedFilter: document.getElementById('earned-filter'),
+  spoilerToggle: document.getElementById('spoiler-toggle'),
+  list: document.getElementById('trophy-list'),
+  resultCount: document.getElementById('result-count'),
+  emptyState: document.getElementById('empty-state'),
+  guideContent: document.getElementById('guide-content'),
+  roadmapTitle: document.getElementById('roadmap-title'),
+  roadmapIntro: document.getElementById('roadmap-intro'),
+  roadmapStages: document.getElementById('roadmap-stages'),
+};
 
-const filters = { kind: "all", grade: "all", state: "all", query: "" };
-let data = null;
-let state = loadState();
-let selectedId = null;
-let view = "tracker";
+const store = createProgressStore();
+let trophies = [];
+let roadmap = null;
+let trophiesById = new Map();
 
-function earnedSet() {
-  return new Set(state.earned);
-}
+const handlers = {
+  onToggleEarned(id) {
+    store.toggleEarned(id);
+  },
+  onSelect(id) {
+    store.update({ selectedId: id });
+  },
+  onJumpToTrophy(id) {
+    store.update({ view: 'tracker', selectedId: id, kind: 'all', grade: 'all', earnedFilter: 'all', query: '' });
+    elements.search.value = '';
+    elements.gradeFilter.value = 'all';
+    elements.earnedFilter.value = 'all';
+  },
+};
 
-function visibleTrophies() {
-  return data.trophies.filter((t) => trophyMatches(t, filters, earnedSet()));
-}
+function render() {
+  const state = store.getState();
+  const isRoadmap = state.view === 'roadmap';
+  elements.trackerView.hidden = isRoadmap;
+  elements.roadmapView.hidden = !isRoadmap;
+  elements.trackerTab.classList.toggle('is-active', !isRoadmap);
+  elements.roadmapTab.classList.toggle('is-active', isRoadmap);
 
-function refreshProgress() {
-  const total = data.trophies.length;
-  const done = state.earned.length;
-  $("earnedCount").textContent = String(done);
-  $("earnedPct").textContent = `${Math.round((done / total) * 100)}%`;
-  $("progressFill").style.width = `${(done / total) * 100}%`;
-  const missable = data.trophies.find((t) => t.missable);
-  $("missableState").textContent = isEarned(state, missable.id)
-    ? "the missable one is safe ✓"
-    : "missable still open — do the Chapter 1 meditation";
-  const per = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
-  const perTotal = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
-  for (const t of data.trophies) {
-    perTotal[t.grade] += 1;
-    if (isEarned(state, t.id)) per[t.grade] += 1;
-  }
-  $("gradeLine").textContent = ["platinum", "gold", "silver", "bronze"]
-    .map((g) => `${GRADE_LABEL[g]} ${per[g]}/${perTotal[g]}`)
-    .join(" · ");
-}
-
-function refreshList() {
-  const visible = visibleTrophies();
-  renderList($("trophyList"), visible, {
-    earnedSet: earnedSet(),
+  renderProgress({ summary: elements.summary, grades: elements.grades, fill: elements.fill }, trophies, store);
+  renderKindChips(elements.kindFilters, trophies, state, (kind) => store.update({ kind }));
+  renderTrophyList(
+    { list: elements.list, resultCount: elements.resultCount, emptyState: elements.emptyState },
+    trophies,
     state,
-    selectedId,
-  });
-  $("emptyNote").hidden = visible.length > 0;
-  $("listMeta").textContent =
-    `Showing ${visible.length} of ${data.trophies.length} trophies` +
-    (filters.kind === "online"
-      ? " — GTA VI's official list has no online trophies; all 55 are offline."
-      : "");
-}
-
-function refreshPanel() {
-  const trophy = data.trophies.find((t) => t.id === selectedId) ?? null;
-  renderGuidePanel($("guidePane"), trophy, {
-    earned: trophy ? isEarned(state, trophy.id) : false,
-    state,
-    stageName: trophy ? stageNameFor(data.roadmap, trophy.id) : null,
-  });
-}
-
-function refreshRoadmap() {
-  renderRoadmap(
-    { titleEl: $("roadmapTitle"), summaryEl: $("roadmapSummary"), listEl: $("stageList") },
-    data.roadmap,
-    new Map(data.trophies.map((t) => [t.id, t])),
-    earnedSet(),
+    store,
+    handlers,
   );
+  const selected = trophiesById.get(state.selectedId) ?? null;
+  renderGuidePanel(elements.guideContent, selected, state, store, handlers);
+  if (roadmap) {
+    renderRoadmap(
+      { title: elements.roadmapTitle, intro: elements.roadmapIntro, stages: elements.roadmapStages },
+      roadmap,
+      trophiesById,
+      store,
+      handlers,
+    );
+  }
 }
 
-function refreshAll() {
-  refreshProgress();
-  refreshList();
-  refreshPanel();
-  if (view === "roadmap") refreshRoadmap();
-}
+function bindControls() {
+  elements.search.addEventListener('input', () => store.update({ query: elements.search.value }));
+  elements.gradeFilter.addEventListener('change', () => store.update({ grade: elements.gradeFilter.value }));
+  elements.earnedFilter.addEventListener('change', () => store.update({ earnedFilter: elements.earnedFilter.value }));
+  elements.spoilerToggle.addEventListener('change', () => store.update({ spoilerShield: elements.spoilerToggle.checked }));
+  elements.trackerTab.addEventListener('click', () => store.update({ view: 'tracker' }));
+  elements.roadmapTab.addEventListener('click', () => store.update({ view: 'roadmap' }));
 
-function setView(next) {
-  view = next;
-  $("trackerView").hidden = next !== "tracker";
-  $("roadmapView").hidden = next !== "roadmap";
-  $("viewTrackerBtn").classList.toggle("active", next === "tracker");
-  $("viewRoadmapBtn").classList.toggle("active", next === "roadmap");
-  if (next === "roadmap") refreshRoadmap();
-}
-
-function wireControls() {
-  $("searchInput").addEventListener("input", (event) => {
-    filters.query = event.target.value.trim().toLowerCase();
-    refreshList();
-  });
-  $("kindChips").addEventListener("click", (event) => {
-    const chip = event.target.closest("[data-kind]");
-    if (!chip) return;
-    filters.kind = chip.dataset.kind;
-    for (const c of $("kindChips").querySelectorAll(".chip")) {
-      c.classList.toggle("active", c === chip);
-    }
-    refreshList();
-  });
-  $("gradeSelect").addEventListener("change", (event) => {
-    filters.grade = event.target.value;
-    refreshList();
-  });
-  $("stateSelect").addEventListener("change", (event) => {
-    filters.state = event.target.value;
-    refreshList();
-  });
-  $("spoilerToggle").addEventListener("change", (event) => {
-    state.spoilerShield = event.target.checked;
-    saveState(state);
-    refreshAll();
-  });
-  $("viewTrackerBtn").addEventListener("click", () => setView("tracker"));
-  $("viewRoadmapBtn").addEventListener("click", () => setView("roadmap"));
-
-  $("trophyList").addEventListener("change", (event) => {
-    const box = event.target.closest(".earned-check");
-    if (!box) return;
-    toggleEarned(state, Number(box.dataset.id));
-    saveState(state);
-    refreshAll();
-  });
-  $("trophyList").addEventListener("click", (event) => {
-    if (event.target.closest(".earned-check")) return;
-    const row = event.target.closest(".trophy-row");
-    if (!row) return;
-    selectedId = Number(row.dataset.id);
-    refreshList();
-    refreshPanel();
-  });
-
-  $("exportBtn").addEventListener("click", () => {
-    const blob = new Blob([exportText(state)], { type: "application/json" });
+  elements.exportBtn.addEventListener('click', () => {
+    const blob = new Blob([store.exportJson()], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "leonida-nights-progress.json";
-    a.click();
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'leonida-nights-progress.json';
+    link.click();
     URL.revokeObjectURL(url);
   });
-  $("importFile").addEventListener("change", async (event) => {
-    const file = event.target.files?.[0];
-    event.target.value = "";
+
+  elements.importBtn.addEventListener('click', () => elements.importFile.click());
+  elements.importFile.addEventListener('change', async () => {
+    const file = elements.importFile.files?.[0];
     if (!file) return;
-    const next = importText(await file.text());
-    if (!next) return;
-    state = next;
-    $("spoilerToggle").checked = state.spoilerShield;
-    saveState(state);
-    refreshAll();
+    try {
+      const ids = store.importJson(await file.text());
+      const valid = ids.filter((id) => trophiesById.has(id));
+      store.setEarned(valid);
+    } catch {
+      window.alert('That file could not be read as a Leonida Nights progress export.');
+    } finally {
+      elements.importFile.value = '';
+    }
   });
 }
 
 async function boot() {
   try {
-    data = await loadGuideData();
-  } catch (err) {
-    $("listMeta").textContent = `Could not load the guide data: ${err.message}`;
+    const data = await loadGuideData();
+    trophies = data.trophies;
+    roadmap = data.roadmap;
+    trophiesById = new Map(trophies.map((t) => [t.id, t]));
+  } catch (error) {
+    elements.summary.textContent = `Could not load the trophy data (${error.message}). Serve the app/ folder over HTTP and reload.`;
     return;
   }
-  $("spoilerToggle").checked = state.spoilerShield;
-  const missable = data.trophies.find((t) => t.missable);
-  selectedId = missable ? missable.id : data.trophies[0].id;
-  wireControls();
-  refreshAll();
+  const state = store.getState();
+  elements.search.value = state.query;
+  elements.gradeFilter.value = state.grade;
+  elements.earnedFilter.value = state.earnedFilter;
+  elements.spoilerToggle.checked = state.spoilerShield;
+  if (state.selectedId === null && trophies.length > 0) store.update({ selectedId: 28 });
+  bindControls();
+  store.subscribe(render);
+  render();
 }
 
 boot();

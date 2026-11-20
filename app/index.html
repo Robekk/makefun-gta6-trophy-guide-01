@@ -3,90 +3,97 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Leonida Nights — GTA VI Trophy Guide &amp; Tracker</title>
+<title>Leonida Nights — GTA VI Trophy Guide & Tracker</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="skyline" aria-hidden="true"></div>
-<header class="masthead">
-  <div class="masthead-text">
-    <p class="kicker">Grand Theft Auto VI · PlayStation 5 · Offline guide</p>
-    <h1>Leonida Nights <span class="thin">Trophy Guide &amp; Tracker</span></h1>
-    <p class="sub">All 55 official trophies with a cited guide for each, a seven-stage road to the platinum, and the one missable moment flagged before it can bite.</p>
+<header id="site-header">
+  <div class="header-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">LN</div>
+      <div class="brand-text">
+        <h1 id="app-title">Leonida Nights</h1>
+        <p class="tagline">Grand Theft Auto VI — Trophy Guide &amp; Tracker · PS5 · all 55 trophies, every guide cited</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <nav class="view-tabs" aria-label="Views">
+        <button id="view-tracker-btn" class="tab-btn is-active" type="button">Tracker</button>
+        <button id="view-roadmap-btn" class="tab-btn" type="button">Roadmap to Platinum</button>
+      </nav>
+      <div class="io-actions">
+        <button id="export-btn" class="ghost-btn" type="button">Export progress</button>
+        <button id="import-btn" class="ghost-btn" type="button">Import progress</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+      </div>
+    </div>
   </div>
-  <div class="progress-card" id="progressCard">
-    <div class="progress-big"><span id="earnedCount">0</span><span class="of"> / 55</span></div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-    <p class="progress-note"><span id="earnedPct">0%</span> earned · <span id="missableState">missable still open</span></p>
-    <p class="grade-line" id="gradeLine"></p>
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="progress-summary">Loading trophies…</span>
+      <span id="progress-grades" class="progress-grades"></span>
+    </div>
+    <div class="progress-track" role="progressbar" aria-label="Trophies earned" aria-valuemin="0" aria-valuemax="55">
+      <div id="progress-fill"></div>
+    </div>
   </div>
 </header>
 
-<nav class="toolbar" aria-label="Tracker controls">
-  <div class="view-switch" role="tablist">
-    <button id="viewTrackerBtn" class="switch-btn active" type="button">Tracker</button>
-    <button id="viewRoadmapBtn" class="switch-btn" type="button">Roadmap to Platinum</button>
-  </div>
-  <label class="search-box">
-    <span class="visually-hidden">Search trophies</span>
-    <input id="searchInput" type="search" placeholder="Search a trophy, a mission, a name…">
-  </label>
-  <div class="chip-row" id="kindChips" role="group" aria-label="Filter by kind">
-    <button type="button" class="chip active" data-kind="all">All</button>
-    <button type="button" class="chip" data-kind="story">Story</button>
-    <button type="button" class="chip warn" data-kind="missable">Missable</button>
-    <button type="button" class="chip" data-kind="collectibles">Collectibles</button>
-    <button type="button" class="chip" data-kind="activities">Activities</button>
-    <button type="button" class="chip" data-kind="online">Online</button>
-  </div>
-  <label class="select-box">Grade
-    <select id="gradeSelect">
-      <option value="all">All grades</option>
-      <option value="platinum">Platinum</option>
-      <option value="gold">Gold</option>
-      <option value="silver">Silver</option>
-      <option value="bronze">Bronze</option>
-    </select>
-  </label>
-  <label class="select-box">State
-    <select id="stateSelect">
-      <option value="all">All</option>
-      <option value="earned">Earned</option>
-      <option value="unearned">Not yet</option>
-    </select>
-  </label>
-  <label class="spoiler-toggle">
-    <input type="checkbox" id="spoilerToggle">
-    <span>Spoiler shield: hide story trophies until earned</span>
-  </label>
-  <div class="io-box">
-    <button id="exportBtn" type="button">Export progress</button>
-    <label class="import-label" for="importFile">Import progress</label>
-    <input id="importFile" type="file" accept="application/json,.json" class="visually-hidden">
-  </div>
-</nav>
-
-<main id="trackerView" class="layout">
-  <section class="list-pane" aria-label="Trophy checklist">
-    <p class="list-meta" id="listMeta"></p>
-    <ol class="trophy-list" id="trophyList"></ol>
-    <p class="empty-note" id="emptyNote" hidden>No trophy matches those filters. Loosen a filter or clear the search.</p>
+<main id="tracker-view">
+  <section class="toolbar" aria-label="Filters">
+    <label class="search-box">
+      <span class="search-label">Search</span>
+      <input id="search-input" type="search" placeholder="Search name, description or guide…" autocomplete="off">
+    </label>
+    <div id="kind-filters" class="chip-row" role="group" aria-label="Filter by kind"></div>
+    <label class="select-box">
+      <span>Grade</span>
+      <select id="grade-filter">
+        <option value="all">All grades</option>
+        <option value="platinum">Platinum</option>
+        <option value="gold">Gold</option>
+        <option value="silver">Silver</option>
+        <option value="bronze">Bronze</option>
+      </select>
+    </label>
+    <label class="select-box">
+      <span>Earned</span>
+      <select id="earned-filter">
+        <option value="all">All trophies</option>
+        <option value="earned">Earned only</option>
+        <option value="unearned">Unearned only</option>
+      </select>
+    </label>
+    <label class="spoiler-box">
+      <input id="spoiler-toggle" type="checkbox">
+      <span>Spoiler shield — hide story trophies until earned</span>
+    </label>
   </section>
-  <aside class="guide-pane" id="guidePane" aria-label="Trophy guide">
-    <p class="guide-hint">Pick any trophy on the left to read its guide, its sources and its place on the road to the platinum.</p>
-  </aside>
+
+  <div class="layout">
+    <section class="list-pane" aria-label="Trophy checklist">
+      <p id="result-count" class="result-count"></p>
+      <ul id="trophy-list" class="trophy-list"></ul>
+      <p id="empty-state" class="empty-state" hidden>No trophies match those filters. Loosen a filter or clear the search.</p>
+    </section>
+    <aside id="guide-panel" class="guide-panel" aria-label="Trophy guide">
+      <div id="guide-content" class="guide-content">
+        <p class="guide-placeholder">Pick a trophy from the checklist to read its guide — what to do, where it can be missed, and the sources every fact is cited from.</p>
+      </div>
+    </aside>
+  </div>
 </main>
 
-<main id="roadmapView" class="roadmap-wrap" hidden>
+<main id="roadmap-view" hidden>
   <section class="roadmap-head">
-    <h2 id="roadmapTitle">Road to the Platinum</h2>
-    <p id="roadmapSummary"></p>
+    <h2 id="roadmap-title">Roadmap to the Platinum</h2>
+    <p id="roadmap-intro" class="roadmap-intro"></p>
   </section>
-  <ol class="stage-list" id="stageList"></ol>
+  <ol id="roadmap-stages" class="roadmap-stages"></ol>
 </main>
 
-<footer class="colophon">
-  <p>Guides written for this tracker in our own words; every guide names its sources beside it. Trophy names and descriptions are the official PlayStation ones. No Rockstar artwork — the Leonida night look is drawn in CSS only. Progress never leaves this browser unless you export it.</p>
+<footer id="site-footer">
+  <p>Leonida Nights is a fan-made tracker. Trophy names and descriptions are the official PlayStation ones; every guide is written for this page and cites its sources beside it. Progress lives only in your browser (localStorage) — export it to keep a backup.</p>
 </footer>
 
 <script type="module" src="js/main.js"></script>

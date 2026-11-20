@@ -1,60 +1,41 @@
-// data.js — loads the two JSON documents the guide is built from. Both are
-// files of this app (data/trophies.json, data/roadmap.json); nothing is ever
-// fetched from the network beyond this app's own folder.
+// Data loading for Leonida Nights: the trophy list and the roadmap, both plain files under app/data/.
 
 export async function loadGuideData() {
-  const [trophyDoc, roadmapDoc] = await Promise.all([
-    fetch("data/trophies.json").then((r) => {
-      if (!r.ok) throw new Error(`trophies.json: HTTP ${r.status}`);
-      return r.json();
-    }),
-    fetch("data/roadmap.json").then((r) => {
-      if (!r.ok) throw new Error(`roadmap.json: HTTP ${r.status}`);
-      return r.json();
-    }),
+  const [trophyResponse, roadmapResponse] = await Promise.all([
+    fetch('data/trophies.json'),
+    fetch('data/roadmap.json'),
   ]);
+  if (!trophyResponse.ok) throw new Error(`trophies.json answered ${trophyResponse.status}`);
+  if (!roadmapResponse.ok) throw new Error(`roadmap.json answered ${roadmapResponse.status}`);
+  const trophyDoc = await trophyResponse.json();
+  const roadmap = await roadmapResponse.json();
   const trophies = Array.isArray(trophyDoc) ? trophyDoc : trophyDoc.trophies;
-  if (!Array.isArray(trophies)) throw new Error("trophies.json: no trophies array");
-  return { trophies, roadmap: roadmapDoc };
+  return { trophies, roadmap };
 }
 
-// The filters the toolbar can express, in one place so the list, the meta
-// line and the tests all agree on what "matches" means.
-export function trophyMatches(trophy, filters, earnedSet) {
-  if (filters.kind === "missable") {
-    if (!trophy.missable) return false;
-  } else if (filters.kind !== "all" && trophy.kind !== filters.kind) {
-    return false;
-  }
-  if (filters.grade !== "all" && trophy.grade !== filters.grade) return false;
-  const earned = earnedSet.has(trophy.id);
-  if (filters.state === "earned" && !earned) return false;
-  if (filters.state === "unearned" && earned) return false;
-  if (filters.query) {
-    const haystack = `${trophy.name} ${trophy.description} ${trophy.guide}`.toLowerCase();
-    if (!haystack.includes(filters.query)) return false;
-  }
-  return true;
-}
-
-// Spoiler rule: with the shield on, a trophy PlayStation hides (or a story
-// trophy) stays masked until the player has earned it.
-export function isMasked(trophy, state) {
-  if (!state.spoilerShield) return false;
-  if (state.earned.includes(trophy.id)) return false;
-  return trophy.hidden === true || trophy.kind === "story";
-}
-
-export const GRADE_LABEL = {
-  platinum: "Platinum",
-  gold: "Gold",
-  silver: "Silver",
-  bronze: "Bronze",
+export const KIND_LABELS = {
+  story: 'Story',
+  collectibles: 'Collectibles',
+  activities: 'Activities',
+  online: 'Online',
 };
 
-export const KIND_LABEL = {
-  story: "Story",
-  collectibles: "Collectibles",
-  activities: "Activities",
-  online: "Online",
-};
+export const KIND_ORDER = ['story', 'collectibles', 'activities', 'online'];
+
+// A story trophy is spoiler-sensitive: with the shield on, its name and description stay
+// masked until it is earned. The platinum is the list's capstone, not a spoiler, so it is exempt.
+export function isSpoilerSensitive(trophy) {
+  return trophy.kind === 'story' && trophy.grade !== 'platinum';
+}
+
+export function isMasked(trophy, state, store) {
+  return state.spoilerShield && isSpoilerSensitive(trophy) && !store.isEarned(trophy.id);
+}
+
+export function countByGrade(trophies) {
+  const counts = { platinum: 0, gold: 0, silver: 0, bronze: 0 };
+  for (const trophy of trophies) {
+    if (counts[trophy.grade] !== undefined) counts[trophy.grade] += 1;
+  }
+  return counts;
+}
