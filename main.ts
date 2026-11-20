@@ -13,7 +13,7 @@
 // (MAKEFUN_OUTPUT_DIR stands in for the grader's /output.)
 // Serve the app itself with `node serve.ts`, then open http://localhost:8080.
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-frontend.ts';
@@ -44,4 +44,24 @@ if (existsSync(join(repoDir, 'screenshots'))) {
   mkdirSync(join(outputDir, 'screenshots'), { recursive: true });
 }
 
-writeFileSync(join(outputDir, 'dossier.json'), buildDossier(outputDir, DOSSIER_LIMITS));
+function countFiles(dir) {
+  let count = 0;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    count += entry.isDirectory() ? countFiles(join(dir, entry.name)) : 1;
+  }
+  return count;
+}
+
+const dossier = buildDossier(outputDir, DOSSIER_LIMITS);
+writeFileSync(join(outputDir, 'dossier.json'), dossier);
+
+// Report what was handed over, and fail loudly rather than hand in a
+// dossier the scorer would refuse: dossier.json is capped at 1.5 MiB.
+const dossierBytes = Buffer.byteLength(dossier);
+const DOSSIER_MAX_BYTES = 1572864; // 1.5 MiB
+if (dossierBytes > DOSSIER_MAX_BYTES) {
+  console.error(`dossier.json is ${dossierBytes} bytes — over the 1.5 MiB cap`);
+  process.exit(1);
+}
+const copiedFiles = countFiles(join(outputDir, 'app')) + countFiles(join(outputDir, 'screenshots'));
+console.log(`Leonida Trophy Guide: copied ${copiedFiles} files; dossier.json is ${dossierBytes} bytes.`);

@@ -109,8 +109,9 @@ function renderList() {
   if (!visible.length) {
     const empty = document.createElement('li');
     empty.className = 'empty-state';
-    empty.textContent = 'No trophies match these filters. The full PS5 list has no online trophies, ' +
-      'so the Online filter honestly comes up empty.';
+    empty.textContent = 'No trophies match these filters — clear the search, or pick another kind, ' +
+      'grade or status. (The full PS5 list has no online trophies, so the Online filter honestly ' +
+      'comes up empty.)';
     listEl.replaceChildren(empty);
     return;
   }
